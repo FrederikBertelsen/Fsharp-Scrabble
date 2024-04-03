@@ -1,6 +1,9 @@
 # A Scrabble bot in F#
 
 ## Links
+[Notes doc](https://docs.google.com/document/d/1XIqQuM5xurjzQqMDdXQUWW2Qv1JmxQY6TexVLzIxbJI/edit?usp=sharing)
+
+## External Links
 [Lecture 10 slides](https://github.com/FrBB-ITU/Fsharp-Scrabble/blob/main/Docs/Lecture%2010.pdf)\
 [Scrabble project documentation](https://github.com/FrBB-ITU/Fsharp-Scrabble/blob/main/Docs/Scrabble%20Project.pdf)\
 [official scrabble tournament rules](https://www.scrabbleplayers.org/rules/player-rules-20170120.pdf)
