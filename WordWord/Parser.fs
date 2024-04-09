@@ -2,6 +2,7 @@
 
     open Eval
     open ScrabbleUtil
+    open StateMonad
 
     (*
 
@@ -76,7 +77,7 @@
     let ParenParse = parenthesise TermParse
     let NegParse = unop (pchar '-') AtomParse |>> (fun a -> Mul (N (-1), a)) <?> "Neg"
     // let PValueParse = between (pstring "pointValue (") (pchar ')') TermParse |>> PV <?> "PointValue"
-    let PVParse = unop (pstring "pointValue") (parenthesise TermParse) |>> PV <?> "PointValue"
+    let PValueParse = unop (pstring "pointValue") (parenthesise TermParse) |>> PV <?> "PointValue"
 
     let VariableParse = pid |>> V <?> "Variable"
     let CharToIntParse = unop (pstring "charToInt") (parenthesise CexpParse) |>> CharToInt <?> "CharToInt"
@@ -101,6 +102,19 @@
 
     let parseBoardProg _ = failwith "not implemented"
     
+
+    
+    type word   = (char * int) list
+    type squareFun = word -> int -> int -> Result<int, Error>
+    type square = Map<int, squareFun>
+    
+    type boardFun2 = coord -> Result<square option, Error>
+        
+    type board = {
+        center        : coord
+        defaultSquare : square
+        squares       : boardFun2
+    }
 
 
     let mkBoard (bp : boardProg) : board = failwith "not implemented"
