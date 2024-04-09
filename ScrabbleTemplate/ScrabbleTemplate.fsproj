@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ScrabbleBot\ScrabbleBot.fsproj" />
+    <ProjectReference Include="..\WordWord\WordWord.fsproj" />
   </ItemGroup>
 
   <ItemGroup>
