@@ -75,7 +75,9 @@
     let NumParse = pint32 |>> N <?> "Int"
     let ParenParse = parenthesise TermParse
     let NegParse = unop (pchar '-') AtomParse |>> (fun a -> Mul (N (-1), a)) <?> "Neg"
-    let PValueParse = between (pstring "pointValue (") (pchar ')') TermParse |>> PV <?> "PointValue"
+    // let PValueParse = between (pstring "pointValue (") (pchar ')') TermParse |>> PV <?> "PointValue"
+    let PVParse = unop (pstring "pointValue") (parenthesise TermParse) |>> PV <?> "PointValue"
+
     let VariableParse = pid |>> V <?> "Variable"
     let CharToIntParse = unop (pstring "charToInt") (parenthesise CexpParse) |>> CharToInt <?> "CharToInt"
     
