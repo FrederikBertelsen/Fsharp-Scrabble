@@ -1,4 +1,5 @@
 # A Scrabble bot in F#
+By "Me and the boys"
 
 ## Links
 [Lecture 10 slides](https://github.com/FrBB-ITU/Fsharp-Scrabble/blob/main/Docs/Lecture%2010.pdf)\
