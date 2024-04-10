@@ -90,7 +90,7 @@ let NegParse = unop (pchar '-') AtomParse |>> (fun a -> Mul(N(-1), a)) <?> "Neg"
 let PValueParse = unop (pstring "pointValue") (parenthesise TermParse) |>> PV <?> "PointValue"
 let VariableParse = pid |>> V <?> "Variable"
 let CharToIntParse = unop (pstring "charToInt") (parenthesise CexpParse) |>> CharToInt <?> "CharToInt"
-do aref := choice [ CharToIntParse; NegParse; PValueParse; VariableParse; ParenParse; NumParse ]
+do aref := choice [ NegParse; PValueParse; VariableParse; ParenParse; NumParse; CharToIntParse ]
 
 
 let AexpParse = TermParse
@@ -102,8 +102,8 @@ let IntToChar = unop (pstring "intToChar") (parenthesise AexpParse) |>> IntToCha
 do cref := choice [ CharParse; ToLower; ToUpper; IntToChar; pCVL ]
 
 
-let pTrue = pstring "true" |>> (fun _ -> TT)  <?> "True"
-let pFalse = pstring "false" |>> (fun _ -> FF)  <?> "False"
+let True = pstring "true" |>> (fun _ -> TT)  <?> "True"
+let False = pstring "false" |>> (fun _ -> FF)  <?> "False"
 let pNot = pstring "~" >*>. BexpParse |>> Not <?> "Not"
 let pAnd = binop (pstring "/\\") BexpParse BexpParse |>> Conj <?> "Conj"
 let pOr =binop (pstring "\\/") BexpParse BexpParse |>> (fun (a, b) -> Not(Conj(Not a, Not b))) <?> "Disj"
@@ -113,42 +113,21 @@ let pLt = binop (pstring "<") AexpParse AexpParse |>> ALt <?> "Less Than"
 let pLe = binop (pstring "<=") AexpParse AexpParse |>> (fun (a, b) -> Not(ALt(b, a))) <?> "Less Than or Equal"
 let pGt = binop (pstring ">") AexpParse AexpParse |>> (fun (a, b) -> ALt(b, a)) <?> "Greater Than"
 let pGe = binop (pstring ">=") AexpParse AexpParse |>> (fun (a, b) -> Not(ALt(a, b))) <?> "Greater Than or Equal"
-do bref := choice [ pTrue; pFalse; pNot; pAnd; pOr; pEq; pNeq; pLt; pLe; pGt; pGe ]
+do bref := choice [ True; False; pNot; pAnd; pOr; pEq; pNeq; pLt; pLe; pGt; pGe ]
 
 
 let stmntParse = pstring "not implemented"
 
+let parseSquareProg  (sp: squareProg) : square = failwith "not implemented"
+let parseBoardProg (bp: string) (squares: Map<int, square>) : boardFun2 = failwith "not implemented"
 
-let parseSquareProg _ = failwith "not implemented"
+// let mkBoard (bp : boardProg) : board = failwith "not implemented"
+let mkBoard (bp: boardProg) : board =
+    let parsedSquares = Map.map (fun _ sp -> parseSquareProg sp) bp.squares
+    let center = bp.center
+    let defaultSquare = Map.find bp.usedSquare parsedSquares
+    let squares = parseBoardProg bp.prog parsedSquares
 
-let parseBoardProg _ = failwith "not implemented"
-
-// let parseSquareFun (sp: squareProg) : square =
-//     // Implement the logic to convert a squareProg to a square
-//     // This is a placeholder. You need to replace it with your actual implementation
-//     Map.empty
-//
-// let parseBoardFun (bp: string) (squares: Map<int, square>) : boardFun2 =
-//     // Implement the logic to convert a boardProg and a map of squares to a boardFun2
-//     // This is a placeholder. You need to replace it with your actual implementation
-//     fun (coord: coord) -> Result<square option, Error>
-//
-//
-// // let mkBoard (bp : boardProg) : board = failwith "not implemented"
-// let mkBoard (bp: boardProg) : board =
-//     // Parse all the square programs in the squares field of the boardProg object
-//     let parsedSquares = Map.map (fun _ sp -> parseSquareFun sp) bp.squares
-//
-//     // Set the center field to the center field of the boardProg object
-//     let center = bp.center
-//
-//     // Set the defaultSquare field to the square function with key x in the parsedSquares map
-//     let defaultSquare = Map.find bp.usedSquare parsedSquares
-//
-//     // Set the squares field to the result of parsing the board program with the parsedSquares map
-//     let squares = parseBoardFun bp.prog parsedSquares
-//
-//     // Create a new board with the converted fields
-//     { center = center
-//       defaultSquare = defaultSquare
-//       squares = squares }
+    { center = center
+      defaultSquare = defaultSquare
+      squares = squares }
