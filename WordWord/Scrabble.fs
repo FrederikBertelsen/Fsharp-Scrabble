@@ -1,4 +1,4 @@
-﻿namespace WordWord
+namespace WordWord
 
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
@@ -67,6 +67,10 @@ module Scrabble =
             forcePrint "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
             let input =  System.Console.ReadLine()
             let move = RegEx.parseMove input
+            if input.Equals "" then
+                send cstream SMPass
+                aux st
+            
 
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.playerNumber st) move) // keep the debug lines. They are useful.
             send cstream (SMPlay move)
