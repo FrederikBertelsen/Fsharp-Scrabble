@@ -73,7 +73,7 @@ module State =
     let getOurPlayerId st = st.ourPlayerId
     let getCurrentTurn st = st.currentTurn
 
-    let incrementPlayerTurn st = getCurrentTurn st + 1
+    let incrementCurrentTurn currentTurn = currentTurn + 1
 
     let isOurTurn st =
         getOurPlayerId st = getCurrentTurn st % getPlayerCount st
@@ -88,20 +88,25 @@ module State =
           currentTurn = currentTurn
           placedTiles = placedTiles }
 
-    let removeTilesFromHand tilesToRemove currentState =
+    let removeTilesFromHand hand tilesToRemove =
         let tileIdsToRemove = List.map (fun (_, (tileId, (_, _))) -> tileId) tilesToRemove
 
         List.fold
             (fun updatedHand tileToRemove -> MultiSet.removeSingle tileToRemove updatedHand)
-            (getHand currentState)
+            hand
             tileIdsToRemove
 
-    let addTilesToHand tilesToAdd currentState =
+    let addTilesToHand hand tilesToAdd =
         List.fold
             (fun handToUpdate (tileIdToAdd, quantity) -> MultiSet.add tileIdToAdd quantity handToUpdate)
-            (getHand currentState)
+            hand
             tilesToAdd
 
+    let AddTilesToPlacedTiles (placedTiles: Map<coord, char>) (moveSequence: (coord * (uint32 * (char * int))) list) =
+        List.fold
+            (fun updatedPlacedTiles (coordinate, (_, (char, _))) -> Map.add coordinate char updatedPlacedTiles)
+            placedTiles
+            moveSequence
 
 module BotLogic =
     let calculateNextMove st pieces isHumanPlayer =
@@ -125,7 +130,7 @@ module Scrabble =
     let playGame cStream pieces (st: State.state) =
         let rec aux (st: State.state) =
             let mutable nextMove = (SMPass, [])
-            
+
             if State.isOurTurn st then
                 forcePrint "\n----------------------------------------------------\n\n"
                 Print.printHand pieces (State.getHand st)
@@ -139,7 +144,7 @@ module Scrabble =
             else
                 // if it isn't our turn, do nothing
                 ()
-            
+
             // send move to server
             debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.getOurPlayerId st) (snd nextMove)) // keep the debug lines. They are useful.
             send cStream (fst nextMove)
@@ -147,12 +152,19 @@ module Scrabble =
             // get server response
             let msg = recv cStream
             debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.getOurPlayerId st) (snd nextMove)) // keep the debug lines. They are useful.
-            
+
             // act on server response
             match msg with
             | RCM(CMPlaySuccess(moveSequence, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-                let st' = st // This state needs to be updated
+
+                // update state values
+                let tiles = State.AddTilesToPlacedTiles (State.getPlacedTiles st) moveSequence
+                let updatedHand = State.removeTilesFromHand (State.getHand st) moveSequence
+                let updatedHand' = State.addTilesToHand updatedHand newPieces
+                let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
+
+                let st' = State.updateState st updatedHand' currentTurn tiles
                 aux st'
             | RCM(CMPlayed(playerId, moveSequence, points)) ->
                 (* Successful play by other player. Update your state *)
