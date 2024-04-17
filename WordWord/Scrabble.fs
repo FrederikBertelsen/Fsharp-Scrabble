@@ -126,9 +126,11 @@ module Scrabble =
 
     let playGame cStream pieces (st: State.state) =
         let rec aux (st: State.state) =
+            
             let mutable nextMove = (SMPass, [])
+            
             if State.isOurTurn st then
-                forcePrint "\n------------------- OUR TURN -------------------\n\n"
+                forcePrint $"\n----------------- OUR TURN (%d{State.getCurrentTurn st}) -----------------\n\n"
                 Print.printHand pieces (State.getHand st)
 
                 // remove the force print when you move on from manual input (or when you have learnt the format)
@@ -139,7 +141,7 @@ module Scrabble =
                 nextMove <- BotLogic.calculateNextMove st pieces isHumanPlayer
             else
                 // if it isn't our turn, do nothing
-                forcePrint "\n----------------- NOT OUR TURN -----------------\n\n"
+                forcePrint $"\n--------------- NOT OUR TURN (%d{State.getCurrentTurn st} ---------------\n\n"
                 ()
 
             // send move to server
@@ -154,12 +156,13 @@ module Scrabble =
             match msg with
             | RCM(CMPlaySuccess(moveSequence, points, newPieces)) ->
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
-
+                
                 // update state values
+                let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
+
                 let placedTiles = State.AddTilesToPlacedTiles (State.getPlacedTiles st) moveSequence
                 let updatedHand = State.removeTilesFromHand (State.getHand st) moveSequence
                 let updatedHand' = State.addTilesToHand updatedHand newPieces
-                let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
 
                 let st' = State.updateState st updatedHand' currentTurn placedTiles
                 aux st'
@@ -167,8 +170,9 @@ module Scrabble =
                 (* Successful play by other player. Update your state *)
 
                 // update state values
-                let placedTiles = State.AddTilesToPlacedTiles (State.getPlacedTiles st) moveSequence
                 let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
+
+                let placedTiles = State.AddTilesToPlacedTiles (State.getPlacedTiles st) moveSequence
 
                 let st' = State.updateState st (State.getHand st) currentTurn placedTiles
                 aux st'
@@ -182,7 +186,10 @@ module Scrabble =
                     State.updateState st (State.getHand st) currentTurn (State.getPlacedTiles st)
 
                 aux st'
-            | RCM(CMPassed _) -> 
+            | RCM(CMPassed _) ->
+                // (* Turn passed. Update your state *)
+                
+                // update state values
                 let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
 
                 let st' =
