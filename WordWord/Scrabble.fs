@@ -109,6 +109,20 @@ module State =
             moveSequence
 
 module BotLogic =
+    
+    let idToChar id pieces =
+        fst (Map.find id pieces)
+    
+    let emptyBoardMove st pieces =
+        let handList = MultiSet.toList (State.getHand st)
+        let charList = List.map idToChar handList
+        forcePrint $"%A{charList}"
+        System.Environment.Exit(0)
+        (SMPlay [],[])
+        //let rec dictStep st dict rest =
+            
+    
+    let move st pieces = (SMPass, [])
     let calculateNextMove st pieces isHumanPlayer =
         if isHumanPlayer then
             let input = System.Console.ReadLine()
@@ -119,17 +133,29 @@ module BotLogic =
                 let move = RegEx.parseMove input
                 ((SMPlay move), move)
         else
+            
             // --- bot logic here ---
-            (SMPass, [])
+            // For each letter on board, check if we can make a word with the letters in hand
+            // Check if that word will create more words when put into board
+            // if so, skip it
+            // send word found
+            if Map.isEmpty (State.getPlacedTiles st) then
+                emptyBoardMove st pieces
+            else
+                move st pieces
+            //(SMPass, [])
+            
+            
+            
+
 
 module Scrabble =
     open System.Threading
 
-    let isHumanPlayer = true
+    let isHumanPlayer = false
 
     let playGame cStream pieces (st: State.state) =
         let rec aux (st: State.state) =
-            // let mutable nextMove : (ServerMessage, []) = (SMPass, [])
             if State.isOurTurn st then
                 forcePrint $"\n----------------- OUR TURN (%d{State.getCurrentTurn st}) -----------------\n\n"
                 Print.printHand pieces (State.getHand st)
