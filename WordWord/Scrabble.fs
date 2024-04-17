@@ -127,7 +127,6 @@ module Scrabble =
     let playGame cStream pieces (st: State.state) =
         let rec aux (st: State.state) =
             let mutable nextMove = (SMPass, [])
-
             if State.isOurTurn st then
                 forcePrint "\n----------------------------------------------------\n\n"
                 Print.printHand pieces (State.getHand st)
@@ -182,7 +181,13 @@ module Scrabble =
                     State.updateState st (State.getHand st) currentTurn (State.getPlacedTiles st)
 
                 aux st'
-            | RCM(CMPassed _) -> ()
+            | RCM(CMPassed _) -> 
+                let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
+
+                let st' =
+                    State.updateState st (State.getHand st) currentTurn (State.getPlacedTiles st)
+
+                aux st'
             | RCM(CMGameOver _) -> ()
             | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err ->
