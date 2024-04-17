@@ -110,12 +110,15 @@ module State =
 
 module BotLogic =
     
-    let idToChar id pieces =
-        fst (Map.find id pieces)
+    let idToChar (id: uint) (pieces: Map<uint32, tile>) : char =
+        let tile = Map.find id pieces
+        let (char, _) = Set.minElement tile
+        char
     
-    let emptyBoardMove st pieces =
+    let emptyBoardMove (st: State.state) (pieces: Map<uint32, tile>) =
         let handList = MultiSet.toList (State.getHand st)
-        let charList = List.map idToChar handList
+        let charList = List.map (fun id -> idToChar id pieces) handList
+
         forcePrint $"%A{charList}"
         System.Environment.Exit(0)
         (SMPlay [],[])
@@ -123,7 +126,7 @@ module BotLogic =
             
     
     let move st pieces = (SMPass, [])
-    let calculateNextMove st pieces isHumanPlayer =
+    let calculateNextMove (st: State.state) (pieces: Map<uint32, tile>) (isHumanPlayer: bool) =
         if isHumanPlayer then
             let input = System.Console.ReadLine()
 
@@ -154,7 +157,7 @@ module Scrabble =
 
     let isHumanPlayer = false
 
-    let playGame cStream pieces (st: State.state) =
+    let playGame cStream (pieces: Map<uint32, tile>) (st: State.state) =
         let rec aux (st: State.state) =
             if State.isOurTurn st then
                 forcePrint $"\n----------------- OUR TURN (%d{State.getCurrentTurn st}) -----------------\n\n"

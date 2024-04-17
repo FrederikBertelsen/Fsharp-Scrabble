@@ -54,7 +54,8 @@ let main argv =
     // Uncomment this line to call your client
     let (dictionary, time) =
         time (fun () -> ScrabbleUtil.Dictionary.mkDict words dictAPI)
-    let players    = [("WordWord", dictionary, WordWord.Scrabble.startGame); ("Oxy", dictionary, Oxyphenbutazone.Scrabble.startGame)]
+    // let players    = [("WordWord", dictionary, WordWord.Scrabble.startGame); ("Oxy", dictionary, Oxyphenbutazone.Scrabble.startGame)]
+    let players    = [("WordWord", dictionary, WordWord.Scrabble.startGame)]
 
     //let players = spawnMultiples "OxyphenButazone" dictionary Oxyphenbutazone.Scrabble.startGame 2
 
