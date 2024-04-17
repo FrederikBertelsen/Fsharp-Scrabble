@@ -76,7 +76,7 @@ module State =
     let incrementCurrentTurn currentTurn = currentTurn + 1
 
     let isOurTurn st =
-        getOurPlayerId st = getCurrentTurn st % getPlayerCount st
+        getOurPlayerId st = (getCurrentTurn st % getPlayerCount st) + 1
 
     let updateState st hand currentTurn placedTiles =
         { board = getBoard st
@@ -91,10 +91,7 @@ module State =
     let removeTilesFromHand hand tilesToRemove =
         let tileIdsToRemove = List.map (fun (_, (tileId, (_, _))) -> tileId) tilesToRemove
 
-        List.fold
-            (fun updatedHand tileToRemove -> MultiSet.removeSingle tileToRemove updatedHand)
-            hand
-            tileIdsToRemove
+        List.fold (fun updatedHand tileToRemove -> MultiSet.removeSingle tileToRemove updatedHand) hand tileIdsToRemove
 
     let addTilesToHand hand tilesToAdd =
         List.fold
@@ -125,7 +122,7 @@ module BotLogic =
 module Scrabble =
     open System.Threading
 
-    let isHumanPlayer = false
+    let isHumanPlayer = true
 
     let playGame cStream pieces (st: State.state) =
         let rec aux (st: State.state) =
