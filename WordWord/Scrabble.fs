@@ -76,7 +76,10 @@ module State =
     let incrementCurrentTurn currentTurn = currentTurn + 1
 
     let isOurTurn st =
-        (getOurPlayerId st - 1) = getCurrentTurn st % getPlayerCount st
+        if getPlayerCount st = 1 then
+            true
+        else
+            (getOurPlayerId st) = getCurrentTurn st % getPlayerCount st
 
     let updateState st hand currentTurn placedTiles =
         { board = getBoard st
