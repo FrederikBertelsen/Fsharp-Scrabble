@@ -128,17 +128,18 @@ module Scrabble =
         let rec aux (st: State.state) =
             let mutable nextMove = (SMPass, [])
             if State.isOurTurn st then
-                forcePrint "\n----------------------------------------------------\n\n"
+                forcePrint "\n------------------- OUR TURN -------------------\n\n"
                 Print.printHand pieces (State.getHand st)
 
                 // remove the force print when you move on from manual input (or when you have learnt the format)
                 forcePrint
-                    "Input move (format '(<x-coordinate> <y-coordinate> <piece id><character><point-value> )*', note the absence of space between the last inputs)\n\n"
+                    "Input move (format '(<x> <y> <piece id><character><points> )*', no spaces between the last inputs)\n\n"
 
                 // calculate the move that we will make
                 nextMove <- BotLogic.calculateNextMove st pieces isHumanPlayer
             else
                 // if it isn't our turn, do nothing
+                forcePrint "\n----------------- NOT OUR TURN -----------------\n\n"
                 ()
 
             // send move to server
