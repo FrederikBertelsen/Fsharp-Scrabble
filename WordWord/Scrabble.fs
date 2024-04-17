@@ -139,18 +139,22 @@ module Scrabble =
 
                 // calculate the move that we will make
                 nextMove <- BotLogic.calculateNextMove st pieces isHumanPlayer
+                
+                // send move to server
+                forcePrint "Sending move to server... "
+                send cStream (fst nextMove)
+                forcePrint $"(Sent!)\nMove sent: %A{nextMove}\n\n"
+
             else
                 // if it isn't our turn, do nothing
                 forcePrint $"\n--------------- NOT OUR TURN (%d{State.getCurrentTurn st} ---------------\n\n"
                 ()
 
-            // send move to server
-            // debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.getOurPlayerId st) (snd nextMove)) // keep the debug lines. They are useful.
-            send cStream (fst nextMove)
 
             // get server response
+            forcePrint "Waiting for server response... "
             let msg = recv cStream
-            // debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.getOurPlayerId st) (snd nextMove)) // keep the debug lines. They are useful.
+            forcePrint $"(Received!)\nServer response: %A{msg}\n\n"
 
             // act on server response
             match msg with
