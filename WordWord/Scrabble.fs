@@ -126,9 +126,7 @@ module Scrabble =
 
     let playGame cStream pieces (st: State.state) =
         let rec aux (st: State.state) =
-            
-            let mutable nextMove = (SMPass, [])
-            
+            // let mutable nextMove : (ServerMessage, []) = (SMPass, [])
             if State.isOurTurn st then
                 forcePrint $"\n----------------- OUR TURN (%d{State.getCurrentTurn st}) -----------------\n\n"
                 Print.printHand pieces (State.getHand st)
@@ -138,7 +136,7 @@ module Scrabble =
                     "Input move (format '(<x> <y> <piece id><character><points> )*', no spaces between last inputs)\n\n"
 
                 // calculate the move that we will make
-                nextMove <- BotLogic.calculateNextMove st pieces isHumanPlayer
+                let nextMove = BotLogic.calculateNextMove st pieces isHumanPlayer
                 
                 // send move to server
                 forcePrint "Sending move to server... "
@@ -149,6 +147,7 @@ module Scrabble =
                 // if it isn't our turn, do nothing
                 forcePrint $"\n--------------- NOT OUR TURN (%d{State.getCurrentTurn st} ---------------\n\n"
                 ()
+
 
 
             // get server response
