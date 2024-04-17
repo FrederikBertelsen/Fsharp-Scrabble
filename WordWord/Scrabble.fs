@@ -76,7 +76,7 @@ module State =
     let incrementCurrentTurn currentTurn = currentTurn + 1
 
     let isOurTurn st =
-        getOurPlayerId st = (getCurrentTurn st % getPlayerCount st) + 1
+        (getOurPlayerId st - 1) = getCurrentTurn st % getPlayerCount st
 
     let updateState st hand currentTurn placedTiles =
         { board = getBoard st
@@ -143,12 +143,12 @@ module Scrabble =
                 ()
 
             // send move to server
-            debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.getOurPlayerId st) (snd nextMove)) // keep the debug lines. They are useful.
+            // debugPrint (sprintf "Player %d -> Server:\n%A\n" (State.getOurPlayerId st) (snd nextMove)) // keep the debug lines. They are useful.
             send cStream (fst nextMove)
 
             // get server response
             let msg = recv cStream
-            debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.getOurPlayerId st) (snd nextMove)) // keep the debug lines. They are useful.
+            // debugPrint (sprintf "Player %d <- Server:\n%A\n" (State.getOurPlayerId st) (snd nextMove)) // keep the debug lines. They are useful.
 
             // act on server response
             match msg with
@@ -156,21 +156,33 @@ module Scrabble =
                 (* Successful play by you. Update your state (remove old tiles, add the new ones, change turn, etc) *)
 
                 // update state values
-                let tiles = State.AddTilesToPlacedTiles (State.getPlacedTiles st) moveSequence
+                let placedTiles = State.AddTilesToPlacedTiles (State.getPlacedTiles st) moveSequence
                 let updatedHand = State.removeTilesFromHand (State.getHand st) moveSequence
                 let updatedHand' = State.addTilesToHand updatedHand newPieces
                 let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
 
-                let st' = State.updateState st updatedHand' currentTurn tiles
+                let st' = State.updateState st updatedHand' currentTurn placedTiles
                 aux st'
             | RCM(CMPlayed(playerId, moveSequence, points)) ->
                 (* Successful play by other player. Update your state *)
-                let st' = st // This state needs to be updated
+
+                // update state values
+                let placedTiles = State.AddTilesToPlacedTiles (State.getPlacedTiles st) moveSequence
+                let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
+
+                let st' = State.updateState st (State.getHand st) currentTurn placedTiles
                 aux st'
             | RCM(CMPlayFailed(playerId, moveSequence)) ->
                 (* Failed play. Update your state *)
-                let st' = st // This state needs to be updated
+
+                // update state values
+                let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
+
+                let st' =
+                    State.updateState st (State.getHand st) currentTurn (State.getPlacedTiles st)
+
                 aux st'
+            | RCM(CMPassed _) -> ()
             | RCM(CMGameOver _) -> ()
             | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err ->
