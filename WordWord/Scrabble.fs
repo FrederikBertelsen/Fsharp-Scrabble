@@ -133,7 +133,7 @@ module Scrabble =
 
                 // remove the force print when you move on from manual input (or when you have learnt the format)
                 forcePrint
-                    "Input move (format '(<x> <y> <piece id><character><points> )*', no spaces between the last inputs)\n\n"
+                    "Input move (format '(<x> <y> <piece id><character><points> )*', no spaces between last inputs)\n\n"
 
                 // calculate the move that we will make
                 nextMove <- BotLogic.calculateNextMove st pieces isHumanPlayer
