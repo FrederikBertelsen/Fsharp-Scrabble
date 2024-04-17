@@ -148,7 +148,7 @@ module Scrabble =
 
             else
                 // if it isn't our turn, do nothing
-                forcePrint $"\n--------------- NOT OUR TURN (%d{State.getCurrentTurn st} ---------------\n\n"
+                forcePrint $"\n--------------- NOT OUR TURN (%d{State.getCurrentTurn st}) ---------------\n\n"
                 ()
 
 
