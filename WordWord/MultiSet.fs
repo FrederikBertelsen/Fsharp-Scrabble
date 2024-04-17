@@ -20,40 +20,21 @@ module MultiSet
         else
             0u
 
-    let add (key : 'a) (un : uint32) (R s : MultiSet<'a>) : MultiSet<'a> =
-        if Map.containsKey key s then
-            let currentVal = s.[key]
-            R (Map.add key (currentVal + un) s)
-        else
-            R (Map.add key un s)
-        
+    let add (e : 'a) (n : uint32) (R m : MultiSet<'a>) : MultiSet<'a> = R (Map.add e (if  m.ContainsKey e then (Map.find e m) + n else n) m)
 
-    let addSingle (key : 'a) (R s : MultiSet<'a>) : MultiSet<'a> =
-        if Map.containsKey key s then
-            let currentVal = s.[key]
-            R (Map.add key (currentVal + 1u) s)
-        else
-            R (Map.add key 1u s)
+    let addSingle (e : 'a) (m : MultiSet<'a>) : MultiSet<'a> = add e 1u m
     
-    let remove (key : 'a) (un : uint32) (R s  : MultiSet<'a>) : MultiSet<'a> =
-            if Map.containsKey key s then
-               let currentVal = s.[key]
-               if currentVal - un > currentVal then
-                   R(Map.remove key s)
-               else
-                   R (Map.add key (currentVal - un) s)
+    let remove (e : 'a) (n : uint32) (R m  : MultiSet<'a>) : MultiSet<'a> =
+        let o = Option.defaultValue 0u (Map.tryFind e m)
+        if m.ContainsKey e then
+            if o > n then
+                R (Map.add e (o-n) m)
             else
-               R s
+                R (Map.remove e m)
+        else
+            R m
 
-    let removeSingle (key : 'a) (R s : MultiSet<'a>) : MultiSet<'a> =
-            if Map.containsKey key s then
-               let currentVal = s.[key]
-               if currentVal - 1u > currentVal then
-                   R(Map.remove key s)
-               else
-                   R (Map.add key (currentVal - 1u) s)
-            else
-                R s
+    let removeSingle (e : 'a) (m : MultiSet<'a>) : MultiSet<'a>= remove e 1u m
 
 
     let fold (F : 'b -> 'a -> uint32 -> 'b) (acc : 'b) (R s : MultiSet<'a>) =
