@@ -37,8 +37,8 @@ let fold (F: 'b -> 'a -> uint32 -> 'b) (acc: 'b) (R s: MultiSet<'a>) = Map.fold 
 let foldBack (F: 'a -> uint32 -> 'b -> 'b) (R s: MultiSet<'a>) (acc: 'b) = Map.foldBack F s acc
 
 let ofList (_: 'a list) : MultiSet<'a> = empty
-let toList (_: MultiSet<'a>) : 'a list = []
-
+let toList (R multiSet: MultiSet<'a>) : 'a list =
+    Map.fold (fun accumulatedList key value -> accumulatedList @ List.replicate (int value) key) [] multiSet
 
 let map (_: 'a -> 'b) (_: MultiSet<'a>) : MultiSet<'b> = empty
 
