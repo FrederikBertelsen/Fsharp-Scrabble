@@ -22,7 +22,7 @@ let main argv =
 
     // System.Console.BackgroundColor <- System.ConsoleColor.White
     // System.Console.ForegroundColor <- System.ConsoleColor.Black
-    System.Console.BackgroundColor <- System.ConsoleColor.Gray
+    System.Console.BackgroundColor <- System.ConsoleColor.DarkGray
 
     System.Console.Clear()
 
