@@ -115,6 +115,13 @@ module BotLogic =
         let (char, _) = Set.minElement tile
         char
         
+    let charToId (char: char) (pieces: Map<uint32, tile>) : uint32 =
+        match Map.tryFindKey (fun _ tile -> Set.exists (fun (c, _) -> c = char) tile) pieces with
+        | Some(id) -> id
+        | None -> 0u // should not happen
+
+
+        
     let rotateList lst =
         List.tail lst @ [lst[0]]
     
@@ -127,87 +134,38 @@ module BotLogic =
         
         let rec goDown (str:string) (dict:Dictionary.Dict) (charL:List<char>) : (bool * string) =
             let o = Dictionary.step charL[0] dict
-            forcePrint (str + string charL[0] + "\n")
             match o with
             | Some (b, newDict) ->
                 if b then
                     // if we find a word we return it
-                    forcePrint "found word"
                     (true, (str + (string charL[0])))
                 else
                     if List.tail charL = [] then
                         (false, "")
                     else
-                        rotate (str + string charL[0]) newDict (List.tail charL) (List.tail charL).Length
+                        rotate (str + string charL[0]) newDict (List.tail charL)
             | _ -> (false, "")
             
                         
                         
-        and rotate str dict lst (amountToRotate: int) : (bool * string) =
+        and rotate str dict lst : (bool * string) =
             let o = goDown str dict lst
             if fst o then
                 o
             else
-                if amountToRotate <> 0 then
-                    let rec tryToRotate l a =
-                        let  p = rotate str dict (rotateList lst) (a-1)
-                        if fst p || a = 0 then
-                            p
-                        else
-                            tryToRotate (rotateList l) a
-                    tryToRotate lst amountToRotate
-                else
-                    o
+                let rec tryToRotate l a =
+                    let b = a-1
+                    let k = rotateList l
+                    let  p = goDown str dict k
+                    if fst p || b = 0 then
+                        p
+                    else
+                        tryToRotate  k b
+                tryToRotate lst (lst.Length - 1)
                     
+        let p = rotate "" (State.getDictionary st) charList
+        forcePrint (snd p)
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        // let rec getNext (charL:List<char>) (dict: Dictionary.Dict) (acc:string) (length:int ): string =
-        //     let o = Dictionary.step charL[0] dict
-        //     
-        //     forcePrint (acc + string charL[0] + "\n")
-        //     forcePrint $"%A{length}"
-        //     match o with
-        //     | Some (b, newDict) ->
-        //         let newAcc = acc + (string charL[0])
-        //         let newList = List.tail charL
-        //         if b then
-        //             // if we find a word we return it
-        //             forcePrint "found word"
-        //             newAcc
-        //         else
-        //             // if we haven't found a word, but it is possible to find one with the letters we already have
-        //             (getNext newList newDict newAcc (length - 1))
-        //             // if  = acc then
-        //             //     let rotatedList = List.tail charL @ [charL[0]]
-        //             //     let rec wordNotFound newList dict acc length =
-        //             //         getNext newList dict acc length
-        //                     
-        //                 
-        //                 
-        //             // if length = 0 then
-        //             //     acc
-        //             // else 
-        //             //     
-        //             //     (getNext lst dict acc (length - 1))
-        //             
-        //     | _ ->
-        //         // if it is not possible to find a word with the letter we have already used
-        //         if length = 0 then
-        //             forcePrint "didnt find word"
-        //             acc
-        //         else 
-        //             (getNext (rotateList charL) dict acc (length - 1))
-        let p = rotate "" (State.getDictionary st) charList charList.Length
         // System.Environment.Exit(0)
         (SMPlay [],[])
         //let rec dictStep st dict rest =
