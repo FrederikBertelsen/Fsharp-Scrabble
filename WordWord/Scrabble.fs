@@ -114,13 +114,55 @@ module BotLogic =
         let tile = Map.find id pieces
         let (char, _) = Set.minElement tile
         char
+        
+    let charToId (char: char) (pieces: Map<uint32, tile>) : uint32 =
+        match Map.tryFindKey (fun _ tile -> Set.exists (fun (c, _) -> c = char) tile) pieces with
+        | Some(id) -> id
+        | None -> 0u // should not happen
+
+
+        
+    let rotateList lst =
+        List.tail lst @ [lst[0]]
+
+    let rec goDown (str:string) (dict:Dictionary.Dict) (charL:List<char>) : (bool * string) =
+        let o = Dictionary.step charL[0] dict
+        match o with
+        | Some (b, newDict) ->
+            if b then
+                // if we find a word we return it
+                (true, (str + (string charL[0])))
+            else
+                if List.tail charL = [] then
+                    (false, str)
+                else
+                    rotate (str + string charL[0]) newDict (List.tail charL)
+        | _ -> (false, "")
+        
+                    
+                    
+    and rotate (str:string) dict (lst:List<char>) : (bool * string) =
+        let rec tryToRotate (l:List<char>) rotateAmount =
+            let  result = goDown str dict l
+            if fst result || rotateAmount = 0 then
+                result
+            else
+                tryToRotate  (rotateList l) (rotateAmount-1)
+        tryToRotate lst (lst.Length-1)
     
     let emptyBoardMove (st: State.state) (pieces: Map<uint32, tile>) =
         let handList = MultiSet.toList (State.getHand st)
         let charList = List.map (fun id -> idToChar id pieces) handList
 
         forcePrint $"%A{charList}"
-        System.Environment.Exit(0)
+        
+        
+        
+                    
+        let p = rotate "" (State.getDictionary st) charList
+        forcePrint (snd p)
+        
+        // System.Environment.Exit(0)
         (SMPlay [],[])
         //let rec dictStep st dict rest =
             
