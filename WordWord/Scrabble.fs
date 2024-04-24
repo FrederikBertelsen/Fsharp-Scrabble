@@ -148,13 +148,13 @@ module BotLogic =
             
                         
                         
-        and rotate str dict lst : (bool * string) =
-            let rec tryToRotate l a =
-                let  p = goDown str dict l
-                if fst p || a = 0 then
-                    p
+        and rotate (str:string) dict (lst:List<char>) : (bool * string) =
+            let rec tryToRotate (l:List<char>) rotateAmount =
+                let  result = goDown str dict l
+                if fst result || rotateAmount = 0 then
+                    result
                 else
-                    tryToRotate  (rotateList l) (a-1)
+                    tryToRotate  (rotateList l) (rotateAmount-1)
             tryToRotate lst (lst.Length-1)
                     
         let p = rotate "" (State.getDictionary st) charList
