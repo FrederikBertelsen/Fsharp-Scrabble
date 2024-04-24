@@ -111,14 +111,14 @@ module State =
 module BotLogic =
     
     let idToChar (id: uint) (pieces: Map<uint32, tile>) : char =
-        let tile = Map.find id pieces
-        let (char, _) = Set.minElement tile
-        char
+        char (id + 64u)
+        //let tile = Map.find id pieces
+        //let (char, _) = Set.maxElement tile
+        //char
         
     let charToId (char: char) (pieces: Map<uint32, tile>) : uint32 =
-        match Map.tryFindKey (fun _ tile -> Set.exists (fun (c, _) -> c = char) tile) pieces with
-        | Some(id) -> id
-        | None -> 0u // should not happen
+        (uint32 char) - 64u
+        //Map.findKey (fun _ tile -> Set.exists (fun (c, _) -> c = char) tile) pieces
 
 
         
@@ -149,21 +149,57 @@ module BotLogic =
             else
                 tryToRotate  (rotateList l) (rotateAmount-1)
         tryToRotate lst (lst.Length-1)
+
+    let translateIdToTile id (pieces  : Map<uint32, tile>) (suffix: bool) (horizontal: bool) (refPos: (int*int)) count: coord * (uint * (char * int)) =
+        if suffix then
+            if horizontal then
+                let coord = ((fst refPos) + 1 + count, snd refPos)
+                let til = Map.find id pieces
+                (coord , (id , Set.minElement til))
+            else 
+                let coord = (fst refPos, (snd refPos) + 1 + count)
+                let til = Map.find id pieces
+                (coord , (id , Set.minElement til))
+        else 
+            if horizontal then
+                let coord = ((fst refPos) - (1 + count), snd refPos)
+                let til = Map.find id pieces
+                (coord , (id , Set.minElement til))
+            else 
+                let coord = (fst refPos, (snd refPos) - (1 + count))
+                let til = Map.find id pieces
+                (coord , (id , Set.minElement til))
+
+    let translateStringToPlay (str: string) (suffix: bool) (horizontal: bool) (refPos: (int*int)) (pieces  : Map<uint32, tile>) =  
+        let charList = Seq.toList str
+        let idList = List.map (fun char -> charToId char pieces) charList
+        let pos = refPos
+        // List.map (fun id -> translateIdToTile id pieces suffix horizontal refPos) idList
+        let foldTranslateIdToTile (pieces : Map<uint32, tile>) (suffix : bool) (horizontal : bool) (refPos : int * int) (count, result) id =
+            let translatedTile = translateIdToTile id pieces suffix horizontal refPos count
+            (count + 1, translatedTile :: result)
+
+        snd (List.fold (foldTranslateIdToTile pieces suffix horizontal refPos) (0, []) idList)
+
+
+
+        
+
+
     
     let emptyBoardMove (st: State.state) (pieces: Map<uint32, tile>) =
         let handList = MultiSet.toList (State.getHand st)
-        let charList = List.map (fun id -> idToChar id pieces) handList
-
+        let charList = handList |> List.filter (fun id -> id <> 0u) |> List.map (fun id -> idToChar id pieces)
         forcePrint $"%A{charList}"
         
         
         
                     
         let p = rotate "" (State.getDictionary st) charList
-        forcePrint (snd p)
-        
-        // System.Environment.Exit(0)
-        (SMPlay [],[])
+        if fst p then
+            (SMPlay (translateStringToPlay (snd p) true false (0, -1) pieces), translateStringToPlay (snd p) true false (0, -1) pieces)
+        else 
+            (SMPass,[])
         //let rec dictStep st dict rest =
             
     
