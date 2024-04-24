@@ -124,6 +124,31 @@ module BotLogic =
         
     let rotateList lst =
         List.tail lst @ [lst[0]]
+
+    let rec goDown (str:string) (dict:Dictionary.Dict) (charL:List<char>) : (bool * string) =
+        let o = Dictionary.step charL[0] dict
+        match o with
+        | Some (b, newDict) ->
+            if b then
+                // if we find a word we return it
+                (true, (str + (string charL[0])))
+            else
+                if List.tail charL = [] then
+                    (false, str)
+                else
+                    rotate (str + string charL[0]) newDict (List.tail charL)
+        | _ -> (false, "")
+        
+                    
+                    
+    and rotate (str:string) dict (lst:List<char>) : (bool * string) =
+        let rec tryToRotate (l:List<char>) rotateAmount =
+            let  result = goDown str dict l
+            if fst result || rotateAmount = 0 then
+                result
+            else
+                tryToRotate  (rotateList l) (rotateAmount-1)
+        tryToRotate lst (lst.Length-1)
     
     let emptyBoardMove (st: State.state) (pieces: Map<uint32, tile>) =
         let handList = MultiSet.toList (State.getHand st)
@@ -132,30 +157,7 @@ module BotLogic =
         forcePrint $"%A{charList}"
         
         
-        let rec goDown (str:string) (dict:Dictionary.Dict) (charL:List<char>) : (bool * string) =
-            let o = Dictionary.step charL[0] dict
-            match o with
-            | Some (b, newDict) ->
-                if b then
-                    // if we find a word we return it
-                    (true, (str + (string charL[0])))
-                else
-                    if List.tail charL = [] then
-                        (false, "")
-                    else
-                        rotate (str + string charL[0]) newDict (List.tail charL)
-            | _ -> (false, "")
-            
-                        
-                        
-        and rotate (str:string) dict (lst:List<char>) : (bool * string) =
-            let rec tryToRotate (l:List<char>) rotateAmount =
-                let  result = goDown str dict l
-                if fst result || rotateAmount = 0 then
-                    result
-                else
-                    tryToRotate  (rotateList l) (rotateAmount-1)
-            tryToRotate lst (lst.Length-1)
+        
                     
         let p = rotate "" (State.getDictionary st) charList
         forcePrint (snd p)
