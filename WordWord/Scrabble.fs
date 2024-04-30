@@ -127,31 +127,33 @@ module BotLogic =
         
         
     let spaceAvailable (str:String) (c:char) verPrefix verSuffix horPrefix horSuffix =
-        forcePrint (c.ToString())
-        forcePrint("oplqr1")
+        // forcePrint (c.ToString())
+        // forcePrint("oplqr1")
         if c = '0' then
-            forcePrint("c=0")
+            // forcePrint("c=0")
             ((true, false), str)
         else
             if (str.Contains(c)) then
-                forcePrint("oplqr5")
+                // forcePrint("oplqr5")
                 let parts = str.Split(c)
-                forcePrint("oplqr6")
+                // forcePrint("oplqr6")
                 if Array.length parts > 2 then
                     //something
-                    forcePrint ("array length")
+                    // forcePrint ("array length")
                     ((false, false), str)
                 else
-                    if (String.length parts[0] <= verPrefix && String.length parts[1] <= verSuffix) then
-                        forcePrint("oplqr2")
+                    if String.length parts[0] <= verPrefix && String.length parts[1] <= verSuffix &&
+                       verPrefix <> 0 && verSuffix <> 0 then
+                        // forcePrint("oplqr2")
                         //return vertical success
                         ((true, false), str)
-                    elif (String.length parts[0] <= horPrefix && String.length parts[1] <= horSuffix) then
-                        forcePrint("oplqr3")
+                    elif String.length parts[0] <= horPrefix && String.length parts[1] <= horSuffix &&
+                         horPrefix <> 0 && horSuffix <> 0 then
+                        // forcePrint("oplqr3")
                         //return horizontal success
                         ((true, true), str)
                     else
-                        forcePrint("oplqr4")
+                        // forcePrint("oplqr4")
                         ((false,false), str)
                         //return failure
             else
@@ -228,40 +230,85 @@ module BotLogic =
             (SMPass,[])
         //let rec dictStep st dict rest =
         
-        
+
     let calculateLimits (placedTiles:  Map<coord,char>) (handSize: uint) : List<coord * char * (int * int * int * int)>=
         let rec inner (placedTilesList: List<coord * char>) (currentCoord: coord) (maxHorizontalPrefix:int) (maxHorizontalSuffix:int) (maxVerticalPrefix:int) (maxVerticalSuffix:int)  : (int * int * int * int) =
             match placedTilesList with
             | [] -> (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)
             | (obstacleCoord, _) :: tail ->
-                let distanceX: int = abs ((fst obstacleCoord) - (fst currentCoord))
-                let distanceY: int = abs ((snd obstacleCoord) - (snd currentCoord))
-                
-                let maxHorizontalPrefix =
-                    // if obs.x < cur.x then if y +-1 then distX - 1
-                    if (snd currentCoord) = (snd obstacleCoord) && (fst obstacleCoord) < (fst currentCoord) && distanceX <= maxHorizontalPrefix then
-                        distanceX - 1
-                    else
-                        maxHorizontalPrefix
-                    
-                let maxHorizontalSuffix =
-                    if (snd currentCoord) = (snd obstacleCoord) && (fst obstacleCoord) > (fst currentCoord) && distanceX <= maxHorizontalSuffix then
-                        distanceX - 1
-                    else
-                        maxHorizontalSuffix
+                // Horizontal check
+                let maxHorizontalPrefix, maxHorizontalSuffix = 
+                    if (snd currentCoord) = (snd obstacleCoord) then
+                        let distanceX: int = abs ((fst obstacleCoord) - (fst currentCoord))
                         
-                let maxVerticalPrefix =
-                    if (fst currentCoord) = (fst obstacleCoord) && (snd obstacleCoord) < (snd currentCoord) && distanceY <= maxVerticalPrefix then
-                        distanceY - 1
-                    else
-                        maxVerticalPrefix
+                        // Calculate prefix and suffix limits (in line)
+                        let maxHorizontalPrefix =
+                             if (fst obstacleCoord) < (fst currentCoord) && distanceX <= maxHorizontalPrefix then
+                                 distanceX - 1
+                             else
+                                 maxHorizontalPrefix
                         
-                let maxVerticalSuffix =
-                    if (fst currentCoord) = (fst obstacleCoord) && (snd obstacleCoord) > (snd currentCoord) && distanceY <= maxVerticalSuffix then
-                        distanceY - 1
+                        let maxHorizontalSuffix = 
+                            if (fst obstacleCoord) > (fst currentCoord) && distanceX <= maxHorizontalSuffix then
+                                distanceX - 1
+                            else
+                                maxHorizontalSuffix
+                                
+                        (maxHorizontalPrefix, maxHorizontalSuffix)
+                    // Adjust prefix and suffix if there are obstacles adjacent to the row of a potential horizontal word
+                    elif (snd obstacleCoord) = (snd currentCoord) - 1 || (snd obstacleCoord) = (snd currentCoord) + 1 then
+                        let maxHorizontalPrefix =
+                            if (fst obstacleCoord) < (fst currentCoord) then
+                                min ((fst currentCoord) - (fst obstacleCoord) - 1) maxHorizontalPrefix                        
+                            else
+                                maxHorizontalPrefix
+
+                        let maxHorizontalSuffix =
+                            if (fst obstacleCoord) > (fst currentCoord) then
+                                min ((fst obstacleCoord) - (fst currentCoord) - 1) maxHorizontalSuffix
+                            else
+                                maxHorizontalSuffix
+                       
+                        (maxHorizontalPrefix, maxHorizontalSuffix)
                     else
-                        maxVerticalSuffix
+                        (maxHorizontalPrefix, maxHorizontalSuffix)
                 
+                // Vertical check
+                let maxVerticalPrefix, maxVerticalSuffix =
+                    if (fst currentCoord) = (fst obstacleCoord) then
+                        let distanceY: int = abs ((snd obstacleCoord) - (snd currentCoord))
+                        
+                        // Calculate prefix and suffix limits (in line)
+                        let maxVerticalPrefix =
+                            if (snd obstacleCoord) < (snd currentCoord) && distanceY <= maxVerticalPrefix then
+                                distanceY - 1
+                            else
+                                maxVerticalPrefix
+                            
+                        let maxVerticalSuffix =
+                            if (snd obstacleCoord) > (snd currentCoord) && distanceY <= maxVerticalSuffix then
+                                distanceY - 1
+                            else
+                                maxVerticalSuffix
+                                
+                        (maxVerticalPrefix, maxVerticalSuffix)
+                    // Adjust prefix and suffix if there are obstacles adjacent to the column of a potential vertical word
+                    elif (fst obstacleCoord) = (fst currentCoord) - 1 || (fst obstacleCoord) = (fst currentCoord) + 1 then
+                        let maxVerticalPrefix = 
+                            if (snd obstacleCoord) < (snd currentCoord) then
+                                min ((snd currentCoord) - (snd obstacleCoord) - 1) maxVerticalPrefix
+                            else
+                                maxVerticalPrefix
+                        let maxVerticalSuffix = 
+                            if (snd obstacleCoord) > (snd currentCoord) then
+                                min ((snd obstacleCoord) - (snd currentCoord) - 1) maxVerticalSuffix
+                            else
+                                maxVerticalSuffix
+                                
+                        (maxVerticalPrefix, maxVerticalSuffix)
+                    else
+                        (maxVerticalPrefix, maxVerticalSuffix)
+              
                 inner tail currentCoord maxHorizontalPrefix maxHorizontalSuffix maxVerticalPrefix maxVerticalSuffix
 
         let placedTilesList = Map.toList placedTiles
@@ -278,21 +325,21 @@ module BotLogic =
         let handList = MultiSet.toList (State.getHand st)
         let charList = handList |> List.filter (fun id -> id <> 0u) |> List.map (fun id -> idToChar id pieces)
         
-        placementLimits
-        |> List.iter (fun (currentCoord, currentChar, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)) ->
-            let printString = $"Coord: %A{currentCoord}, Char: %A{currentChar} Max Horizontal Prefix: %d{maxHorizontalPrefix}, Max Horizontal Suffix: %d{maxHorizontalSuffix}, Max Vertical Prefix: %d{maxVerticalPrefix}, Max Vertical Suffix: %d{maxVerticalSuffix}\n"
-            forcePrint printString
-        )
+        // placementLimits
+        // |> List.iter (fun (currentCoord, currentChar, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)) ->
+        //     let printString = $"Coord: %A{currentCoord}, Char: %A{currentChar} Max Horizontal Prefix: %d{maxHorizontalPrefix}, Max Horizontal Suffix: %d{maxHorizontalSuffix}, Max Vertical Prefix: %d{maxVerticalPrefix}, Max Vertical Suffix: %d{maxVerticalSuffix}\n"
+        //     forcePrint printString
+        // )
         // (str:string) dict (lst:List<char>) (c:char) verPrefix verSuffix horPrefix horSuffix
         let rec findWord (lst: List<coord * char * (int*int*int*int)>) =
-            forcePrint("asdasda")
+            // forcePrint("asdasda")
             let item = lst[0]
             match item with
             | (coord, c, tup) ->
                 match tup with
                 | (HP, HS, VP, VS) ->
                     let handWithBoardLetter = c :: charList
-                    forcePrint("yui" + c.ToString())
+                    // forcePrint("yui" + c.ToString())
                     let boolWordPair = rotate "" (State.getDictionary st) handWithBoardLetter c VP VS HP HS
                     if fst (fst boolWordPair) then
                         //todo: split word on char, and run translateStringToPlay on both sides and combine them
