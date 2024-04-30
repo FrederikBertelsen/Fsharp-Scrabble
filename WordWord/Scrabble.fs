@@ -1,5 +1,7 @@
 namespace WordWord
 
+open System
+open System.Net.Mime
 open ScrabbleUtil
 open ScrabbleUtil.ServerCommunication
 
@@ -120,8 +122,6 @@ module BotLogic =
         (uint32 char) - 64u
         //Map.findKey (fun _ tile -> Set.exists (fun (c, _) -> c = char) tile) pieces
 
-
-        
     let rotateList lst =
         List.tail lst @ [lst[0]]
 
@@ -181,29 +181,75 @@ module BotLogic =
 
         snd (List.fold (foldTranslateIdToTile pieces suffix horizontal refPos) (0, []) idList)
 
-
-
-        
-
-
-    
     let emptyBoardMove (st: State.state) (pieces: Map<uint32, tile>) =
         let handList = MultiSet.toList (State.getHand st)
         let charList = handList |> List.filter (fun id -> id <> 0u) |> List.map (fun id -> idToChar id pieces)
         forcePrint $"%A{charList}"
         
-        
-        
-                    
+                 
         let p = rotate "" (State.getDictionary st) charList
         if fst p then
             (SMPlay (translateStringToPlay (snd p) true false (0, -1) pieces), translateStringToPlay (snd p) true false (0, -1) pieces)
         else 
             (SMPass,[])
         //let rec dictStep st dict rest =
-            
+        
+        
+    let calculateLimits (placedTiles:  Map<coord,char>) (handSize: uint) : List<coord * (int * int * int * int)>=
+        let rec inner (placedTilesList: List<coord * char>) (currentCoord: coord) (maxHorizontalPrefix:int) (maxHorizontalSuffix:int) (maxVerticalPrefix:int) (maxVerticalSuffix:int)  : (int * int * int * int) =
+            match placedTilesList with
+            | [] -> (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)
+            | (obstacleCoord, _) :: tail ->
+                let distanceX: int = abs ((fst obstacleCoord) - (fst currentCoord))
+                let distanceY: int = abs ((snd obstacleCoord) - (snd currentCoord))
+                
+                let maxHorizontalPrefix =
+                    if (snd currentCoord) = (snd obstacleCoord) && (fst obstacleCoord) < (fst currentCoord) && distanceX <= maxHorizontalPrefix then
+                        distanceX - 1
+                    else
+                        maxHorizontalPrefix
+                    
+                let maxHorizontalSuffix =
+                    if (snd currentCoord) = (snd obstacleCoord) && (fst obstacleCoord) > (fst currentCoord) && distanceX <= maxHorizontalSuffix then
+                        distanceX - 1
+                    else
+                        maxHorizontalSuffix
+                        
+                let maxVerticalPrefix =
+                    if (fst currentCoord) = (fst obstacleCoord) && (snd obstacleCoord) < (snd currentCoord) && distanceY <= maxVerticalPrefix then
+                        distanceY - 1
+                    else
+                        maxVerticalPrefix
+                        
+                let maxVerticalSuffix =
+                    if (fst currentCoord) = (fst obstacleCoord) && (snd obstacleCoord) > (snd currentCoord) && distanceY <= maxVerticalSuffix then
+                        distanceY - 1
+                    else
+                        maxVerticalSuffix
+                
+                inner tail currentCoord maxHorizontalPrefix maxHorizontalSuffix maxVerticalPrefix maxVerticalSuffix
+
+        let placedTilesList = Map.toList placedTiles
+        let handSizeInt = int handSize
+        
+        List.map (fun (currentCoord, _) ->
+            let maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix = inner placedTilesList currentCoord handSizeInt handSizeInt handSizeInt handSizeInt
+            (currentCoord, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix))
+        ) placedTilesList
+        
     
-    let move st pieces = (SMPass, [])
+    let move (st: State.state) (pieces: Map<uint32, tile>) =
+        let placementLimits = calculateLimits (State.getPlacedTiles st) (MultiSet.size (State.getHand st))
+        
+        placementLimits
+        |> List.iter (fun (currentCoord, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)) ->
+            let printString = $"Coord: %A{currentCoord}, Max Horizontal Prefix: %d{maxHorizontalPrefix}, Max Horizontal Suffix: %d{maxHorizontalSuffix}, Max Vertical Prefix: %d{maxVerticalPrefix}, Max Vertical Suffix: %d{maxVerticalSuffix}\n"
+            forcePrint printString
+        )
+        let test = Console.ReadLine()
+        Environment.Exit(0)
+        
+        (SMPass, [])
     let calculateNextMove (st: State.state) (pieces: Map<uint32, tile>) (isHumanPlayer: bool) =
         if isHumanPlayer then
             let input = System.Console.ReadLine()
