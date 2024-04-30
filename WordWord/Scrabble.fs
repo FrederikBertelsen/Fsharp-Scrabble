@@ -124,27 +124,61 @@ module BotLogic =
 
     let rotateList lst =
         List.tail lst @ [lst[0]]
+        
+        
+    let spaceAvailable (str:String) (c:char) verPrefix verSuffix horPrefix horSuffix =
+        forcePrint (c.ToString())
+        forcePrint("oplqr1")
+        if c = '0' then
+            forcePrint("c=0")
+            ((true, false), str)
+        else
+            if (str.Contains(c)) then
+                forcePrint("oplqr5")
+                let parts = str.Split(c)
+                forcePrint("oplqr6")
+                if Array.length parts > 2 then
+                    //something
+                    forcePrint ("array length")
+                    ((false, false), str)
+                else
+                    if (String.length parts[0] <= verPrefix && String.length parts[1] <= verSuffix) then
+                        forcePrint("oplqr2")
+                        //return vertical success
+                        ((true, false), str)
+                    elif (String.length parts[0] <= horPrefix && String.length parts[1] <= horSuffix) then
+                        forcePrint("oplqr3")
+                        //return horizontal success
+                        ((true, true), str)
+                    else
+                        forcePrint("oplqr4")
+                        ((false,false), str)
+                        //return failure
+            else
+                ((false, false), str)
+        
 
-    let rec goDown (str:string) (dict:Dictionary.Dict) (charL:List<char>) : (bool * string) =
+    let rec goDown (str:string) (dict:Dictionary.Dict) (charL:List<char>) (c:char) verPrefix verSuffix horPrefix horSuffix : ((bool*bool) * string) =
         let o = Dictionary.step charL[0] dict
         match o with
         | Some (b, newDict) ->
             if b then
                 // if we find a word we return it
-                (true, (str + (string charL[0])))
+                spaceAvailable (str + (string charL[0])) c verPrefix verSuffix horPrefix horSuffix
+                //(true, (str + (string charL[0])))
             else
                 if List.tail charL = [] then
-                    (false, str)
+                    ((false,false), str)
                 else
-                    rotate (str + string charL[0]) newDict (List.tail charL)
-        | _ -> (false, "")
+                    rotate (str + string charL[0]) newDict (List.tail charL) c verPrefix verSuffix horPrefix horSuffix
+        | _ -> ((false, false), "")
         
                     
                     
-    and rotate (str:string) dict (lst:List<char>) : (bool * string) =
+    and rotate (str:string) dict (lst:List<char>) (c:char) verPrefix verSuffix horPrefix horSuffix : ((bool*bool) * string) =
         let rec tryToRotate (l:List<char>) rotateAmount =
-            let  result = goDown str dict l
-            if fst result || rotateAmount = 0 then
+            let  result = goDown str dict l c verPrefix verSuffix horPrefix horSuffix
+            if fst (fst result) || rotateAmount = 0 then
                 result
             else
                 tryToRotate  (rotateList l) (rotateAmount-1)
@@ -187,15 +221,15 @@ module BotLogic =
         forcePrint $"%A{charList}"
         
                  
-        let p = rotate "" (State.getDictionary st) charList
-        if fst p then
+        let p = rotate "" (State.getDictionary st) charList '0' 7 7 7 7
+        if fst (fst p) then
             (SMPlay (translateStringToPlay (snd p) true false (0, -1) pieces), translateStringToPlay (snd p) true false (0, -1) pieces)
         else 
             (SMPass,[])
         //let rec dictStep st dict rest =
         
         
-    let calculateLimits (placedTiles:  Map<coord,char>) (handSize: uint) : List<coord * (int * int * int * int)>=
+    let calculateLimits (placedTiles:  Map<coord,char>) (handSize: uint) : List<coord * char * (int * int * int * int)>=
         let rec inner (placedTilesList: List<coord * char>) (currentCoord: coord) (maxHorizontalPrefix:int) (maxHorizontalSuffix:int) (maxVerticalPrefix:int) (maxVerticalSuffix:int)  : (int * int * int * int) =
             match placedTilesList with
             | [] -> (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)
@@ -204,6 +238,7 @@ module BotLogic =
                 let distanceY: int = abs ((snd obstacleCoord) - (snd currentCoord))
                 
                 let maxHorizontalPrefix =
+                    // if obs.x < cur.x then if y +-1 then distX - 1
                     if (snd currentCoord) = (snd obstacleCoord) && (fst obstacleCoord) < (fst currentCoord) && distanceX <= maxHorizontalPrefix then
                         distanceX - 1
                     else
@@ -232,24 +267,53 @@ module BotLogic =
         let placedTilesList = Map.toList placedTiles
         let handSizeInt = int handSize
         
-        List.map (fun (currentCoord, _) ->
+        List.map (fun (currentCoord, currentChar) ->
             let maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix = inner placedTilesList currentCoord handSizeInt handSizeInt handSizeInt handSizeInt
-            (currentCoord, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix))
+            (currentCoord, currentChar, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix))
         ) placedTilesList
         
     
     let move (st: State.state) (pieces: Map<uint32, tile>) =
         let placementLimits = calculateLimits (State.getPlacedTiles st) (MultiSet.size (State.getHand st))
+        let handList = MultiSet.toList (State.getHand st)
+        let charList = handList |> List.filter (fun id -> id <> 0u) |> List.map (fun id -> idToChar id pieces)
         
         placementLimits
-        |> List.iter (fun (currentCoord, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)) ->
-            let printString = $"Coord: %A{currentCoord}, Max Horizontal Prefix: %d{maxHorizontalPrefix}, Max Horizontal Suffix: %d{maxHorizontalSuffix}, Max Vertical Prefix: %d{maxVerticalPrefix}, Max Vertical Suffix: %d{maxVerticalSuffix}\n"
+        |> List.iter (fun (currentCoord, currentChar, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)) ->
+            let printString = $"Coord: %A{currentCoord}, Char: %A{currentChar} Max Horizontal Prefix: %d{maxHorizontalPrefix}, Max Horizontal Suffix: %d{maxHorizontalSuffix}, Max Vertical Prefix: %d{maxVerticalPrefix}, Max Vertical Suffix: %d{maxVerticalSuffix}\n"
             forcePrint printString
         )
-        let test = Console.ReadLine()
-        Environment.Exit(0)
+        // (str:string) dict (lst:List<char>) (c:char) verPrefix verSuffix horPrefix horSuffix
+        let rec findWord (lst: List<coord * char * (int*int*int*int)>) =
+            forcePrint("asdasda")
+            let item = lst[0]
+            match item with
+            | (coord, c, tup) ->
+                match tup with
+                | (HP, HS, VP, VS) ->
+                    let handWithBoardLetter = c :: charList
+                    forcePrint("yui" + c.ToString())
+                    let boolWordPair = rotate "" (State.getDictionary st) handWithBoardLetter c VP VS HP HS
+                    if fst (fst boolWordPair) then
+                        //todo: split word on char, and run translateStringToPlay on both sides and combine them
+                        let wordSplit = (snd boolWordPair).Split(c)
+                        let prefixPlay = (translateStringToPlay wordSplit[0] false (snd (fst boolWordPair)) coord pieces)
+                        let suffixPlay = (translateStringToPlay ((Array.tail wordSplit)[0]) true (snd (fst boolWordPair)) coord pieces)
+                        (SMPlay (prefixPlay @ suffixPlay), (prefixPlay @ suffixPlay))
+                    else
+                        if List.tail lst = [] then
+                            (SMPass, [])
+                        else
+                            findWord (List.tail lst)
+                | (_,_,_,_) -> (SMPass, [])
+            | (_,_,_) -> (SMPass, [])
         
-        (SMPass, [])
+        findWord placementLimits
+            
+        // let test = Console.ReadLine()
+        // Environment.Exit(0)
+        //
+        // (SMPass, [])
     let calculateNextMove (st: State.state) (pieces: Map<uint32, tile>) (isHumanPlayer: bool) =
         if isHumanPlayer then
             let input = System.Console.ReadLine()
