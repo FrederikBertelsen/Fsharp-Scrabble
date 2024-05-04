@@ -37,7 +37,7 @@ module Print =
 
     let printHand pieces hand =
         hand
-        |> MultiSet.fold (fun _ x i -> forcePrint (sprintf "%d -> (%A, %d)\n" x (Map.find x pieces) i)) ()
+        |> MultiSet.fold (fun _ x i -> debugPrint $"%d{x} -> (%A{Map.find x pieces}, %d{i})\n") ()
 
 module State =
     // Make sure to keep your state localised in this module. It makes your life a whole lot easier.
@@ -127,35 +127,22 @@ module BotLogic =
         
         
     let spaceAvailable (str:String) (c:char) verPrefix verSuffix horPrefix horSuffix =
-        // forcePrint (c.ToString())
-        // forcePrint("oplqr1")
         if c = '0' then
-            // forcePrint("c=0")
             ((true, false), str)
         else
             if (str.Contains(c)) then
-                // forcePrint("oplqr5")
                 let parts = str.Split(c)
-                // forcePrint("oplqr6")
                 if Array.length parts > 2 then
-                    //something
-                    // forcePrint ("array length")
                     ((false, false), str)
                 else
-                    if String.length parts[0] <= verPrefix && String.length parts[1] <= verSuffix &&
+                    if String.length parts[0] < verPrefix && String.length parts[1] < verSuffix &&
                        verPrefix <> 0 && verSuffix <> 0 then
-                        // forcePrint("oplqr2")
-                        //return vertical success
                         ((true, false), str)
-                    elif String.length parts[0] <= horPrefix && String.length parts[1] <= horSuffix &&
+                    elif String.length parts[0] < horPrefix && String.length parts[1] < horSuffix &&
                          horPrefix <> 0 && horSuffix <> 0 then
-                        // forcePrint("oplqr3")
-                        //return horizontal success
                         ((true, true), str)
                     else
-                        // forcePrint("oplqr4")
                         ((false,false), str)
-                        //return failure
             else
                 ((false, false), str)
         
@@ -165,9 +152,7 @@ module BotLogic =
         match o with
         | Some (b, newDict) ->
             if b then
-                // if we find a word we return it
                 spaceAvailable (str + (string charL[0])) c verPrefix verSuffix horPrefix horSuffix
-                //(true, (str + (string charL[0])))
             else
                 if List.tail charL = [] then
                     ((false,false), str)
@@ -209,23 +194,23 @@ module BotLogic =
     let translateStringToPlay (str: string) (suffix: bool) (horizontal: bool) (refPos: (int*int)) (pieces  : Map<uint32, tile>) =  
         let charList = Seq.toList str
         let idList = List.map (fun char -> charToId char pieces) charList
-        let pos = refPos
-        // List.map (fun id -> translateIdToTile id pieces suffix horizontal refPos) idList
+
         let foldTranslateIdToTile (pieces : Map<uint32, tile>) (suffix : bool) (horizontal : bool) (refPos : int * int) (count, result) id =
             let translatedTile = translateIdToTile id pieces suffix horizontal refPos count
             (count + 1, translatedTile :: result)
 
-        snd (List.fold (foldTranslateIdToTile pieces suffix horizontal refPos) (0, []) idList)
+        if suffix then
+            snd (List.fold (foldTranslateIdToTile pieces suffix horizontal refPos) (0, []) idList)
+        else
+            snd (List.fold (foldTranslateIdToTile pieces suffix horizontal refPos) (0, []) (List.rev idList))
 
     let emptyBoardMove (st: State.state) (pieces: Map<uint32, tile>) =
         let handList = MultiSet.toList (State.getHand st)
-        let charList = handList |> List.filter (fun id -> id <> 0u) |> List.map (fun id -> idToChar id pieces)
-        forcePrint $"%A{charList}"
-        
+        let charList = handList |> List.filter (fun id -> id <> 0u) |> List.map (fun id -> idToChar id pieces)        
                  
         let p = rotate "" (State.getDictionary st) charList '0' 7 7 7 7
         if fst (fst p) then
-            (SMPlay (translateStringToPlay (snd p) true false (0, -1) pieces), translateStringToPlay (snd p) true false (0, -1) pieces)
+            (SMPlay (translateStringToPlay (snd p) true true (-1, 0) pieces), translateStringToPlay (snd p) true true (-1, 0) pieces)
         else 
             (SMPass,[])
         //let rec dictStep st dict rest =
@@ -325,22 +310,15 @@ module BotLogic =
         let handList = MultiSet.toList (State.getHand st)
         let charList = handList |> List.filter (fun id -> id <> 0u) |> List.map (fun id -> idToChar id pieces)
         
-        // placementLimits
-        // |> List.iter (fun (currentCoord, currentChar, (maxHorizontalPrefix, maxHorizontalSuffix, maxVerticalPrefix, maxVerticalSuffix)) ->
-        //     let printString = $"Coord: %A{currentCoord}, Char: %A{currentChar} Max Horizontal Prefix: %d{maxHorizontalPrefix}, Max Horizontal Suffix: %d{maxHorizontalSuffix}, Max Vertical Prefix: %d{maxVerticalPrefix}, Max Vertical Suffix: %d{maxVerticalSuffix}\n"
-        //     forcePrint printString
-        // )
-        // (str:string) dict (lst:List<char>) (c:char) verPrefix verSuffix horPrefix horSuffix
         let rec findWord (lst: List<coord * char * (int*int*int*int)>) =
-            // forcePrint("asdasda")
             let item = lst[0]
             match item with
             | (coord, c, tup) ->
                 match tup with
                 | (HP, HS, VP, VS) ->
                     let handWithBoardLetter = c :: charList
-                    // forcePrint("yui" + c.ToString())
                     let boolWordPair = rotate "" (State.getDictionary st) handWithBoardLetter c VP VS HP HS
+                    
                     if fst (fst boolWordPair) then
                         //todo: split word on char, and run translateStringToPlay on both sides and combine them
                         let wordSplit = (snd boolWordPair).Split(c)
@@ -357,10 +335,6 @@ module BotLogic =
         
         findWord placementLimits
             
-        // let test = Console.ReadLine()
-        // Environment.Exit(0)
-        //
-        // (SMPass, [])
     let calculateNextMove (st: State.state) (pieces: Map<uint32, tile>) (isHumanPlayer: bool) =
         if isHumanPlayer then
             let input = System.Console.ReadLine()
@@ -373,54 +347,37 @@ module BotLogic =
         else
             
             // --- bot logic here ---
-            // For each letter on board, check if we can make a word with the letters in hand
-            // Check if that word will create more words when put into board
-            // if so, skip it
-            // send word found
             if Map.isEmpty (State.getPlacedTiles st) then
                 emptyBoardMove st pieces
             else
-                move st pieces
-            //(SMPass, [])
-            
+                move st pieces            
             
             
 
 
 module Scrabble =
-    open System.Threading
-
     let isHumanPlayer = false
 
     let playGame cStream (pieces: Map<uint32, tile>) (st: State.state) =
         let rec aux (st: State.state) =
             if State.isOurTurn st then
-                forcePrint $"\n----------------- OUR TURN (%d{State.getCurrentTurn st}) -----------------\n\n"
                 Print.printHand pieces (State.getHand st)
-
-                // remove the force print when you move on from manual input (or when you have learnt the format)
-                forcePrint
-                    "Input move (format '(<x> <y> <piece id><char><points> )*', no spaces between last inputs)\n\n"
-
+                
                 // calculate the move that we will make
                 let nextMove = BotLogic.calculateNextMove st pieces isHumanPlayer
                 
                 // send move to server
-                forcePrint "Sending move to server... "
                 send cStream (fst nextMove)
-                forcePrint $"(Sent!)\nMove sent: %A{nextMove}\n\n"
 
             else
                 // if it isn't our turn, do nothing
-                forcePrint $"\n--------------- NOT OUR TURN (%d{State.getCurrentTurn st}) ---------------\n\n"
                 ()
 
 
 
             // get server response
-            forcePrint "Waiting for server response... "
             let msg = recv cStream
-            forcePrint $"(Received!)\nServer response: %A{msg}\n\n"
+            debugPrint $"(Received!)\nServer response: %A{msg}\n\n"
 
             // act on server response
             match msg with
@@ -429,7 +386,7 @@ module Scrabble =
                 
                 // update state values
                 let currentTurn = State.incrementCurrentTurn (State.getCurrentTurn st)
-
+                
                 let placedTiles = State.AddTilesToPlacedTiles (State.getPlacedTiles st) moveSequence
                 let updatedHand = State.removeTilesFromHand (State.getHand st) moveSequence
                 let updatedHand' = State.addTilesToHand updatedHand newPieces
@@ -467,9 +424,8 @@ module Scrabble =
 
                 aux st'
             | RCM(CMGameOver _) -> ()
-            | RCM a -> failwith (sprintf "not implmented: %A" a)
             | RGPE err ->
-                printfn "Gameplay Error:\n%A" err
+                debugPrint $"Gameplay Error:\n%A{err}"
                 aux st
 
         // start game loop
@@ -504,7 +460,7 @@ module Scrabble =
         //let dict = dictf true // Uncomment if using a gaddag for your dictionary
         let dict = dictf false // Uncomment if using a trie for your dictionary
         let board = Parser.mkBoard boardP
-
+        
         let handSet = List.fold (fun acc (x, k) -> MultiSet.add x k acc) MultiSet.empty hand
 
         fun () -> playGame cstream tiles (State.mkState board tiles handSet dict numPlayers playerNumber playerTurn)
